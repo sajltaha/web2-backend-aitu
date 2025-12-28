@@ -1,0 +1,93 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Weather & News App</title>
+    <link rel="stylesheet" href="style.css">
+</head>
+<body>
+    <div class="container">
+        <header>
+            <h1>🌤️ Weather & News</h1>
+            <p class="subtitle">Get real-time weather and latest news for any city</p>
+        </header>
+
+        <div class="search-section">
+            <div class="search-box">
+                <input 
+                    type="text" 
+                    id="cityInput" 
+                    placeholder="Enter city name (e.g., Almaty, London, New York)"
+                    autocomplete="off"
+                >
+                <button id="searchBtn" onclick="searchWeather()">
+                    <span>Search</span>
+                </button>
+            </div>
+        </div>
+
+        <div id="loading" class="loading hidden">
+            <div class="spinner"></div>
+            <p>Loading data...</p>
+        </div>
+
+        <div id="error" class="error hidden"></div>
+
+        <div id="results" class="results hidden">
+            <section class="weather-card">
+                <h2>🌡️ Weather Information</h2>
+                <div class="weather-content">
+                    <div class="weather-main">
+                        <div class="temperature">
+                            <span id="temperature">--</span>
+                            <span class="unit">°C</span>
+                        </div>
+                        <div class="description" id="description">--</div>
+                        <div class="location" id="location">--</div>
+                    </div>
+                    <div class="weather-details">
+                        <div class="detail-item">
+                            <span class="label">Feels Like:</span>
+                            <span class="value" id="feelsLike">--°C</span>
+                        </div>
+                        <div class="detail-item">
+                            <span class="label">Wind Speed:</span>
+                            <span class="value" id="windSpeed">-- m/s</span>
+                        </div>
+                        <div class="detail-item">
+                            <span class="label">Humidity:</span>
+                            <span class="value" id="humidity">--%</span>
+                        </div>
+                        <div class="detail-item">
+                            <span class="label">Pressure:</span>
+                            <span class="value" id="pressure">-- hPa</span>
+                        </div>
+                        <div class="detail-item">
+                            <span class="label">Rain (3h):</span>
+                            <span class="value" id="rainVolume">-- mm</span>
+                        </div>
+                        <div class="detail-item">
+                            <span class="label">Coordinates:</span>
+                            <span class="value" id="coordinates">--</span>
+                        </div>
+                        <div class="detail-item">
+                            <span class="label">Country:</span>
+                            <span class="value" id="countryCode">--</span>
+                        </div>
+                    </div>
+                </div>
+            </section>
+
+            <section class="news-card">
+                <h2>📰 Latest News</h2>
+                <div id="newsList" class="news-list">
+                </div>
+            </section>
+        </div>
+    </div>
+
+    <script src="script.js"></script>
+</body>
+</html>
+
