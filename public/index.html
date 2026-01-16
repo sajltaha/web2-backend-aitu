@@ -1,0 +1,50 @@
+<!doctype html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width,initial-scale=1.0" />
+    <title>To-Do CRUD</title>
+    <style>
+        body { font-family: Arial, sans-serif; max-width: 900px; margin: 24px auto; padding: 0 16px; }
+        form { display: grid; gap: 10px; padding: 12px; border: 1px solid #ddd; border-radius: 10px; }
+        input, textarea, select, button { padding: 10px; font-size: 14px; }
+        ul { list-style: none; padding: 0; }
+        li { border: 1px solid #eee; border-radius: 10px; padding: 12px; margin: 10px 0; }
+        .row { display:flex; gap: 10px; flex-wrap: wrap; align-items:center; }
+        .meta { color: #555; font-size: 12px; }
+        button { cursor: pointer; }
+    </style>
+</head>
+<body>
+<h1>To-Do</h1>
+
+<form id="createForm">
+    <input id="editingId" type="hidden" />
+
+    <input id="title" placeholder="Title (required)" required />
+    <textarea id="description" placeholder="Description (required)" required></textarea>
+
+    <div class="row">
+        <select id="status" required>
+            <option value="todo">todo</option>
+            <option value="in_progress">in_progress</option>
+            <option value="done">done</option>
+        </select>
+
+        <select id="priority" required>
+            <option value="low">low</option>
+            <option value="medium" selected>medium</option>
+            <option value="high">high</option>
+        </select>
+
+        <button id="submitBtn" type="submit">Add task</button>
+        <button id="cancelBtn" type="button" style="display:none;">Cancel</button>
+    </div>
+</form>
+
+<h2>Tasks</h2>
+<ul id="list"></ul>
+
+<script src="./app.js"></script>
+</body>
+</html>
