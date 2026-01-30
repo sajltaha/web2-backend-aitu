@@ -24,17 +24,6 @@ router.get("/", async (req, res, next) => {
     }
 });
 
-// READ ONE
-router.get("/:id", async (req, res, next) => {
-    try {
-        const task = await Task.findById(req.params.id);
-        if (!task) return res.status(404).json({ message: "Not found" });
-        res.json(task);
-    } catch (e) {
-        next(e);
-    }
-});
-
 // UPDATE
 router.put("/:id", validateTask, async (req, res, next) => {
     try {
