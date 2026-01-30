@@ -1,50 +1,115 @@
-<!doctype html>
-<html lang="en">
+<!DOCTYPE html>
+<html lang="ru">
 <head>
-    <meta charset="UTF-8" />
-    <meta name="viewport" content="width=device-width,initial-scale=1.0" />
-    <title>To-Do CRUD</title>
-    <style>
-        body { font-family: Arial, sans-serif; max-width: 900px; margin: 24px auto; padding: 0 16px; }
-        form { display: grid; gap: 10px; padding: 12px; border: 1px solid #ddd; border-radius: 10px; }
-        input, textarea, select, button { padding: 10px; font-size: 14px; }
-        ul { list-style: none; padding: 0; }
-        li { border: 1px solid #eee; border-radius: 10px; padding: 12px; margin: 10px 0; }
-        .row { display:flex; gap: 10px; flex-wrap: wrap; align-items:center; }
-        .meta { color: #555; font-size: 12px; }
-        button { cursor: pointer; }
-    </style>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Task Management System</title>
+    <link rel="stylesheet" href="styles.css">
 </head>
 <body>
-<h1>To-Do</h1>
+    <header>
+        <div class="container">
+            <h1>📋 Task Management System</h1>
+            <div class="user-info" id="userInfo" style="display: none;">
+                <span id="userEmail"></span>
+                <span class="badge" id="userRole"></span>
+                <button id="logoutBtn" class="btn-secondary">Log out</button>
+            </div>
+            <div class="auth-buttons" id="authButtons">
+                <button id="loginBtn" class="btn-primary">Login</button>
+                <button id="registerBtn" class="btn-secondary">Registration</button>
+            </div>
+        </div>
+    </header>
 
-<form id="createForm">
-    <input id="editingId" type="hidden" />
+    <main class="container">
+        <div id="authModal" class="modal" style="display: none;">
+            <div class="modal-content">
+                <span class="close">&times;</span>
+                <h2 id="modalTitle">Entrance</h2>
+                
+                <form id="authForm">
+                    <div id="registerFields" style="display: none;">
+                        <label>
+                            Role:
+                            <select id="roleSelect">
+                                <option value="user">User</option>
+                                <option value="admin">Admin</option>
+                            </select>
+                        </label>
+                    </div>
+                    
+                    <label>
+                        Email:
+                        <input type="email" id="emailInput" required>
+                    </label>
+                    
+                    <label>
+                        Password:
+                        <input type="password" id="passwordInput" required minlength="6">
+                    </label>
+                    
+                    <div id="authError" class="error-message"></div>
+                    
+                    <button type="submit" class="btn-primary btn-block" id="authSubmitBtn">Login</button>
+                </form>
+            </div>
+        </div>
 
-    <input id="title" placeholder="Title (required)" required />
-    <textarea id="description" placeholder="Description (required)" required></textarea>
+        <section class="card" id="taskFormSection" style="display: none;">
+            <h2 id="formTitle">Create task</h2>
+            <form id="taskForm">
+                <input type="hidden" id="editingId">
+                
+                <label>
+                    Title:
+                    <input type="text" id="titleInput" placeholder="Task title" required>
+                </label>
+                
+                <label>
+                    Description:
+                    <textarea id="descriptionInput" placeholder="Task description" required></textarea>
+                </label>
+                
+                <div class="row">
+                    <label>
+                        Status:
+                        <select id="statusSelect" required>
+                            <option value="todo">To do</option>
+                            <option value="in_progress">In progress</option>
+                            <option value="done">Done</option>
+                        </select>
+                    </label>
+                    
+                    <label>
+                        Priority:
+                        <select id="prioritySelect" required>
+                            <option value="low">Low</option>
+                            <option value="medium" selected>Medium</option>
+                            <option value="high">High</option>
+                        </select>
+                    </label>
+                </div>
+                
+                <div class="form-actions">
+                    <button type="submit" class="btn-primary" id="submitBtn">Create</button>
+                    <button type="button" class="btn-secondary" id="cancelBtn" style="display: none;">Cancel</button>
+                </div>
+            </form>
+        </section>
 
-    <div class="row">
-        <select id="status" required>
-            <option value="todo">todo</option>
-            <option value="in_progress">in_progress</option>
-            <option value="done">done</option>
-        </select>
+        <section class="card">
+            <h2>Tasks</h2>
+            <div id="tasksList" class="tasks-list"></div>
+            <div id="loadingMessage" class="loading">Loading...</div>
+            <div id="emptyMessage" class="empty-message" style="display: none;">
+                No tasks. <span id="adminHint" style="display: none;">Log in as an administrator to create a task.</span>
+            </div>
+        </section>
+    </main>
 
-        <select id="priority" required>
-            <option value="low">low</option>
-            <option value="medium" selected>medium</option>
-            <option value="high">high</option>
-        </select>
+    <div id="notification" class="notification"></div>
 
-        <button id="submitBtn" type="submit">Add task</button>
-        <button id="cancelBtn" type="button" style="display:none;">Cancel</button>
-    </div>
-</form>
-
-<h2>Tasks</h2>
-<ul id="list"></ul>
-
-<script src="./app.js"></script>
+    <script src="app.js"></script>
 </body>
 </html>
