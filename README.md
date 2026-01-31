@@ -2,17 +2,7 @@
 
 A secure RESTful API for managing tasks and comments, built with Node.js, Express, and MongoDB. This project implements Role-Based Access Control (RBAC) using JWT authentication and password hashing.
 
-## 📋 Table of Contents
-
-- [Project Overview](#project-overview)
-- [Architecture](#architecture)
-- [Features](#features)
-- [Setup Instructions](#setup-instructions)
-- [API Endpoints](#api-endpoints)
-- [Authentication & RBAC](#authentication--rbac)
-- [Testing with Postman](#testing-with-postman)
-
-## 🎯 Project Overview
+## Project Overview
 
 This application provides a task management system with the following features:
 - **Task Management**: Create, read, update, and delete tasks
@@ -20,7 +10,7 @@ This application provides a task management system with the following features:
 - **User Authentication**: Secure registration and login with JWT
 - **Role-Based Access Control**: Different permissions for users and admins
 
-## 🏗️ Architecture
+## Architecture
 
 The project follows the **MVC (Model-View-Controller)** pattern for clean separation of concerns:
 
@@ -56,7 +46,7 @@ asiks/
 3. **Controller Layer**: All database operations are abstracted into controllers for testability
 4. **Error Handling**: Centralized error handling middleware catches and formats all errors
 
-## ✨ Features
+## Features
 
 ### Two Related Objects
 
@@ -77,13 +67,13 @@ asiks/
 - **Role-Based Access Control**: Two roles - `user` and `admin`
 - **Protected Routes**: Admin-only access for POST, PUT, DELETE operations
 
-## 🚀 Setup Instructions
+## Setup Instructions
 
 ### Prerequisites
 
-- Node.js (v14 or higher)
-- MongoDB (local or MongoDB Atlas)
-- npm or yarn
+- Node.js
+- MongoDB
+- npm
 
 ### Installation
 
@@ -110,8 +100,6 @@ asiks/
    ```bash
    npm install
    ```
-   
-   **Note for Windows users**: If `bcrypt` installation fails, you may need to install Visual Studio Build Tools with the "Desktop development with C++" workload. Alternatively, you can use `bcryptjs` (pure JavaScript) by replacing `bcrypt` with `bcryptjs` in `package.json` and updating imports.
 
 5. **Start the server**
    ```bash
@@ -120,7 +108,7 @@ asiks/
 
    The server will start on `http://localhost:3000`
 
-## 📡 API Endpoints
+## API Endpoints
 
 ### Authentication Endpoints
 
@@ -151,7 +139,7 @@ asiks/
 | PUT | `/api/comments/:id` | Authenticated | Update own comment (or admin) |
 | DELETE | `/api/comments/:id` | **Admin Only** | Delete a comment |
 
-## 🔐 Authentication & RBAC
+## Authentication & RBAC
 
 ### User Registration
 
@@ -162,7 +150,7 @@ When registering, users can optionally specify a role. If not specified, the def
 {
   "email": "user@example.com",
   "password": "password123",
-  "role": "user"  // Optional, defaults to "user"
+  "role": "user"
 }
 ```
 
@@ -226,122 +214,6 @@ POST /api/auth/register
 }
 ```
 
-## 🧪 Testing with Postman
-
-### Step 1: Register Users
-
-**Register a regular user:**
-```json
-POST http://localhost:3000/api/auth/register
-Content-Type: application/json
-
-{
-  "email": "user@test.com",
-  "password": "password123"
-}
-```
-
-**Register an admin user:**
-```json
-POST http://localhost:3000/api/auth/register
-Content-Type: application/json
-
-{
-  "email": "admin@test.com",
-  "password": "admin123",
-  "role": "admin"
-}
-```
-
-### Step 2: Login and Get Token
-
-**Login as user:**
-```json
-POST http://localhost:3000/api/auth/login
-Content-Type: application/json
-
-{
-  "email": "user@test.com",
-  "password": "password123"
-}
-```
-
-Copy the `token` from the response.
-
-### Step 3: Test Public Endpoints (No Token)
-
-**Get all tasks:**
-```
-GET http://localhost:3000/api/tasks
-```
-
-### Step 4: Test Admin-Only Endpoints
-
-**Create a task (requires admin token):**
-```json
-POST http://localhost:3000/api/tasks
-Authorization: Bearer <admin-token>
-Content-Type: application/json
-
-{
-  "title": "Complete Assignment 4",
-  "description": "Implement RBAC and MVC architecture",
-  "status": "in_progress",
-  "priority": "high"
-}
-```
-
-**Try as regular user (should fail with 403):**
-```json
-POST http://localhost:3000/api/tasks
-Authorization: Bearer <user-token>
-Content-Type: application/json
-
-{
-  "title": "Test Task",
-  "description": "This should fail",
-  "status": "todo",
-  "priority": "low"
-}
-```
-
-### Step 5: Test Comment Endpoints
-
-**Create a comment (admin only):**
-```json
-POST http://localhost:3000/api/comments
-Authorization: Bearer <admin-token>
-Content-Type: application/json
-
-{
-  "content": "Great progress on this task!",
-  "taskId": "<task-id-from-previous-step>"
-}
-```
-
-**Get comments for a task (public):**
-```
-GET http://localhost:3000/api/comments/task/<task-id>
-```
-
-### Postman Collection
-
-Export your Postman collection with the following test cases:
-
-1. ✅ Register user (role: user)
-2. ✅ Register admin (role: admin)
-3. ✅ Login as user
-4. ✅ Login as admin
-5. ✅ Get all tasks (public - no auth)
-6. ✅ Create task as admin (should succeed)
-7. ❌ Create task as user (should fail with 403)
-8. ✅ Update task as admin (should succeed)
-9. ❌ Update task as user (should fail with 403)
-10. ✅ Delete task as admin (should succeed)
-11. ❌ Delete task as user (should fail with 403)
-12. ✅ Create comment as admin
-13. ❌ Create comment as user (should fail with 403)
-
 ## 🔧 Environment Variables
 
 | Variable | Description | Example |
@@ -350,14 +222,14 @@ Export your Postman collection with the following test cases:
 | `MONGO_URI` | MongoDB connection string | `mongodb://localhost:27017/taskmanager` |
 | `JWT_SECRET` | Secret key for JWT signing | `your-secret-key` |
 
-## 📝 Notes
+## Notes
 
 - All timestamps are automatically managed by Mongoose (`createdAt`, `updatedAt`)
 - Passwords are hashed automatically before saving to the database
 - JWT tokens expire after 7 days
 - Error responses follow a consistent format: `{ message: "Error description" }`
 
-## 🛡️ Security Best Practices Implemented
+##  Security Best Practices Implemented
 
 1. ✅ Password hashing with bcrypt
 2. ✅ JWT token-based authentication
@@ -366,7 +238,7 @@ Export your Postman collection with the following test cases:
 5. ✅ Error handling without exposing sensitive information
 6. ✅ MongoDB injection prevention (via Mongoose)
 
-## 📚 Technologies Used
+## Technologies Used
 
 - **Node.js** - Runtime environment
 - **Express.js** - Web framework
@@ -376,6 +248,3 @@ Export your Postman collection with the following test cases:
 - **bcrypt** - Password hashing
 
 ---
-
-**Assignment 4 - MVC Architecture with RBAC Implementation**
-
