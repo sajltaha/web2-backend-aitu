@@ -15,9 +15,10 @@ const authModal = document.getElementById('authModal');
 const modalTitle = document.getElementById('modalTitle');
 const authForm = document.getElementById('authForm');
 const registerFields = document.getElementById('registerFields');
+const firstNameInput = document.getElementById('firstNameInput');
+const lastNameInput = document.getElementById('lastNameInput');
 const emailInput = document.getElementById('emailInput');
 const passwordInput = document.getElementById('passwordInput');
-const roleSelect = document.getElementById('roleSelect');
 const authError = document.getElementById('authError');
 const authSubmitBtn = document.getElementById('authSubmitBtn');
 const closeModal = document.querySelector('.close');
@@ -28,7 +29,7 @@ const titleInput = document.getElementById('titleInput');
 const descriptionInput = document.getElementById('descriptionInput');
 const statusSelect = document.getElementById('statusSelect');
 const prioritySelect = document.getElementById('prioritySelect');
-const assigneeInput = document.getElementById('assigneeInput');
+const assigneeSelect = document.getElementById('assigneeSelect');
 const dueDateInput = document.getElementById('dueDateInput');
 const submitBtn = document.getElementById('submitBtn');
 const cancelBtn = document.getElementById('cancelBtn');
@@ -38,6 +39,8 @@ const loadingMessage = document.getElementById('loadingMessage');
 const emptyMessage = document.getElementById('emptyMessage');
 const adminHint = document.getElementById('adminHint');
 const notification = document.getElementById('notification');
+const superAdminSection = document.getElementById('superAdminSection');
+const usersList = document.getElementById('usersList');
 const filtersForm = document.getElementById('filtersForm');
 const searchInput = document.getElementById('searchInput');
 const filterStatus = document.getElementById('filterStatus');
@@ -51,6 +54,8 @@ const filters = {
     priority: '',
     mine: false
 };
+
+let users = [];
 
 function getToken() {
     return localStorage.getItem('token');
@@ -132,6 +137,119 @@ function escapeHtml(str) {
         .replace(/'/g, '&#039;');
 }
 
+function getUserLabel(user) {
+    if (!user) return 'Unknown';
+    const name = [user.firstName, user.lastName].filter(Boolean).join(' ').trim();
+    return name || user.email || 'Unknown';
+}
+
+async function loadUsers() {
+    try {
+        const data = await apiRequest('/users');
+        users = Array.isArray(data) ? data : [];
+        renderAssigneeOptions();
+        renderUsersAdmin();
+    } catch (error) {
+        users = [];
+        renderAssigneeOptions();
+        renderUsersAdmin();
+        showNotification('Failed to load users: ' + error.message, 'error');
+    }
+}
+
+function renderAssigneeOptions() {
+    const currentValue = assigneeSelect.value;
+    const options = ['<option value="">Unassigned</option>']
+        .concat(
+            users.map(user => {
+                const label = escapeHtml(user.fullName || `${user.firstName} ${user.lastName}`.trim() || user.email);
+                return `<option value="${user.id}">${label}</option>`;
+            })
+        )
+        .join('');
+    assigneeSelect.innerHTML = options;
+
+    if (currentValue) {
+        assigneeSelect.value = currentValue;
+    }
+}
+
+function renderUsersAdmin() {
+    if (!currentUser || currentUser.role !== 'superadmin') {
+        usersList.innerHTML = '';
+        return;
+    }
+
+    if (!users.length) {
+        usersList.innerHTML = '<div class="empty-message">No users found</div>';
+        return;
+    }
+
+    usersList.innerHTML = users.map(user => {
+        const label = escapeHtml(user.fullName || `${user.firstName} ${user.lastName}`.trim() || user.email);
+        const role = user.role;
+        const isSuperAdmin = role === 'superadmin';
+
+        return `
+            <div class="user-item">
+                <div class="user-meta">
+                    <strong>${label}</strong>
+                    <span>${escapeHtml(user.email)}</span>
+                </div>
+                <div class="user-actions">
+                    <select ${isSuperAdmin ? 'disabled' : ''} onchange="updateUserRole('${user.id}', this.value)">
+                        <option value="user" ${role === 'user' ? 'selected' : ''}>User</option>
+                        <option value="admin" ${role === 'admin' ? 'selected' : ''}>Admin</option>
+                    </select>
+                    <button class="btn-danger btn-sm" ${isSuperAdmin ? 'disabled' : ''} onclick="deleteUser('${user.id}', '${label}')">Delete</button>
+                </div>
+            </div>
+        `;
+    }).join('');
+}
+
+window.updateUserRole = async function(userId, role) {
+    if (!currentUser || currentUser.role !== 'superadmin') {
+        showNotification('Only super admins can change roles', 'error');
+        return;
+    }
+
+    try {
+        await apiRequest(`/users/${userId}/role`, {
+            method: 'PUT',
+            body: JSON.stringify({ role })
+        });
+
+        showNotification('Role updated', 'success');
+        loadUsers();
+    } catch (error) {
+        showNotification('Error: ' + error.message, 'error');
+        loadUsers();
+    }
+};
+
+window.deleteUser = async function(userId, label) {
+    if (!currentUser || currentUser.role !== 'superadmin') {
+        showNotification('Only super admins can delete users', 'error');
+        return;
+    }
+
+    if (!confirm(`Delete user ${label}?`)) {
+        return;
+    }
+
+    try {
+        await apiRequest(`/users/${userId}`, {
+            method: 'DELETE'
+        });
+        showNotification('User deleted', 'success');
+        loadUsers();
+    } catch (error) {
+        showNotification('Error: ' + error.message, 'error');
+        loadUsers();
+    }
+};
+
 function buildTasksUrl() {
     const params = new URLSearchParams();
     if (filters.search) params.set('search', filters.search);
@@ -155,10 +273,18 @@ function updateUI() {
         if (currentUser.role === 'admin') {
             taskFormSection.style.display = 'block';
             adminHint.style.display = 'none';
+            loadUsers();
+            superAdminSection.style.display = 'none';
+        } else if (currentUser.role === 'superadmin') {
+            taskFormSection.style.display = 'block';
+            adminHint.style.display = 'none';
+            loadUsers();
+            superAdminSection.style.display = 'block';
         } else {
             taskFormSection.style.display = 'none';
             adminHint.textContent = 'Log in as an administrator to create tasks. You can change the status of tasks and leave comments.';
             adminHint.style.display = 'inline';
+            superAdminSection.style.display = 'none';
         }
     } else {
         userInfo.style.display = 'none';
@@ -167,6 +293,10 @@ function updateUI() {
         adminHint.style.display = 'inline';
         myTasksOnly.checked = false;
         filters.mine = false;
+        users = [];
+        assigneeSelect.innerHTML = '<option value="">Unassigned</option>';
+        superAdminSection.style.display = 'none';
+        usersList.innerHTML = '';
     }
     
     loadTasks();
@@ -180,10 +310,14 @@ function openAuthModal(isRegister = false) {
         modalTitle.textContent = 'Registration';
         authSubmitBtn.textContent = 'Register';
         registerFields.style.display = 'block';
+        firstNameInput.required = true;
+        lastNameInput.required = true;
     } else {
         modalTitle.textContent = 'Entrance';
         authSubmitBtn.textContent = 'Login';
         registerFields.style.display = 'none';
+        firstNameInput.required = false;
+        lastNameInput.required = false;
     }
     
     authError.textContent = '';
@@ -200,9 +334,10 @@ function closeAuthModal() {
 async function handleAuth(isRegister = false) {
     const email = emailInput.value.trim();
     const password = passwordInput.value;
-    const role = roleSelect.value;
+    const firstName = firstNameInput.value.trim();
+    const lastName = lastNameInput.value.trim();
 
-    if (!email || !password) {
+    if (!email || !password || (isRegister && (!firstName || !lastName))) {
         authError.textContent = 'Fill in all fields';
         return;
     }
@@ -218,7 +353,8 @@ async function handleAuth(isRegister = false) {
 
         const body = { email, password };
         if (isRegister) {
-            body.role = role;
+            body.firstName = firstName;
+            body.lastName = lastName;
         }
 
         const data = await apiRequest('/auth/' + (isRegister ? 'register' : 'login'), {
@@ -301,11 +437,13 @@ function createTaskElement(task) {
         'high': 'High'
     };
 
-    const isAdmin = currentUser && currentUser.role === 'admin';
+    const isAdmin = currentUser && (currentUser.role === 'admin' || currentUser.role === 'superadmin');
     const isAuthenticated = !!currentUser;
-    const assigneeLabel = task.assignee?.email ? escapeHtml(task.assignee.email) : 'Unassigned';
-    const creatorLabel = task.creator?.email ? escapeHtml(task.creator.email) : 'Unknown';
+    const assigneeLabel = task.assignee ? escapeHtml(getUserLabel(task.assignee)) : 'Unassigned';
+    const creatorLabel = task.creator ? escapeHtml(getUserLabel(task.creator)) : 'Unknown';
     const dueDateLabel = task.dueDate ? new Date(task.dueDate).toLocaleDateString('ru-RU') : 'No due date';
+    const updatedByLabel = task.updatedBy ? escapeHtml(getUserLabel(task.updatedBy)) : creatorLabel;
+    const updatedAtLabel = task.updatedAt ? new Date(task.updatedAt).toLocaleString('ru-RU') : new Date(task.createdAt).toLocaleString('ru-RU');
     
     const adminActions = isAdmin ? `
         <div class="task-actions">
@@ -358,6 +496,8 @@ function createTaskElement(task) {
         </div>
         <div class="task-footer">
             Created: ${new Date(task.createdAt).toLocaleString('ru-RU')} · By: ${creatorLabel}
+            <br>
+            Last update: ${updatedAtLabel} · By: ${updatedByLabel}
         </div>
     `;
 
@@ -375,10 +515,10 @@ async function loadComments(taskId) {
             commentsList.innerHTML = '<div class="empty-message">No comments</div>';
         } else {
             commentsList.innerHTML = comments.map(comment => `
-                <div class="comment-item">
+                <div class="comment-item comment-${comment.author?.role || 'user'}">
                     <div class="comment-content">${escapeHtml(comment.content)}</div>
                     <div class="comment-meta">
-                        <span>${comment.author?.email || 'Unknown'}</span>
+                        <span>${comment.author ? escapeHtml(getUserLabel(comment.author)) : 'Unknown'}</span>
                         <span>${new Date(comment.createdAt).toLocaleString('ru-RU')}</span>
                     </div>
                 </div>
@@ -465,7 +605,7 @@ function clearTaskForm() {
     taskForm.reset();
     statusSelect.value = 'todo';
     prioritySelect.value = 'medium';
-    assigneeInput.value = '';
+    assigneeSelect.value = '';
     dueDateInput.value = '';
     submitBtn.textContent = 'Create';
     formTitle.textContent = 'Create task';
@@ -479,7 +619,7 @@ window.editTask = function(taskId) {
         return;
     }
     
-    if (currentUser.role !== 'admin') {
+    if (currentUser.role !== 'admin' && currentUser.role !== 'superadmin') {
         showNotification('Only administrators can edit tasks completely', 'error');
         return;
     }
@@ -493,7 +633,7 @@ window.editTask = function(taskId) {
     descriptionInput.value = task.description;
     statusSelect.value = task.status;
     prioritySelect.value = task.priority;
-    assigneeInput.value = task.assignee?.email || '';
+    assigneeSelect.value = task.assignee?._id || '';
     dueDateInput.value = task.dueDate ? new Date(task.dueDate).toISOString().slice(0, 10) : '';
     
     submitBtn.textContent = 'Save changes';
@@ -509,7 +649,7 @@ window.deleteTask = async function(taskId) {
         return;
     }
     
-    if (currentUser.role !== 'admin') {
+    if (currentUser.role !== 'admin' && currentUser.role !== 'superadmin') {
         showNotification('Only administrators can delete tasks', 'error');
         return;
     }
@@ -543,7 +683,7 @@ async function handleTaskSubmit(event) {
         return;
     }
     
-    if (currentUser.role !== 'admin') {
+    if (currentUser.role !== 'admin' && currentUser.role !== 'superadmin') {
         showNotification('Only administrators can create and edit tasks', 'error');
         return;
     }
@@ -555,11 +695,11 @@ async function handleTaskSubmit(event) {
         priority: prioritySelect.value
     };
 
-    const assigneeEmail = assigneeInput.value.trim();
-    if (assigneeEmail) {
-        taskData.assigneeEmail = assigneeEmail;
+    const assigneeId = assigneeSelect.value;
+    if (assigneeId) {
+        taskData.assigneeId = assigneeId;
     } else if (editingId.value) {
-        taskData.assigneeEmail = '';
+        taskData.assigneeId = '';
     }
 
     const dueDateValue = dueDateInput.value;

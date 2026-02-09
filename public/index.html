@@ -31,12 +31,15 @@
                 <form id="authForm">
                     <div id="registerFields" style="display: none;">
                         <label>
-                            Role:
-                            <select id="roleSelect">
-                                <option value="user">User</option>
-                                <option value="admin">Admin</option>
-                            </select>
+                            First name:
+                            <input type="text" id="firstNameInput" required>
                         </label>
+
+                        <label>
+                            Last name:
+                            <input type="text" id="lastNameInput" required>
+                        </label>
+
                     </div>
                     
                     <label>
@@ -93,8 +96,10 @@
 
                 <div class="row">
                     <label>
-                        Assignee (email):
-                        <input type="email" id="assigneeInput" placeholder="user@example.com">
+                        Assignee:
+                        <select id="assigneeSelect">
+                            <option value="">Unassigned</option>
+                        </select>
                     </label>
 
                     <label>
@@ -108,6 +113,11 @@
                     <button type="button" class="btn-secondary" id="cancelBtn" style="display: none;">Cancel</button>
                 </div>
             </form>
+        </section>
+
+        <section class="card" id="superAdminSection" style="display: none;">
+            <h2>User Management</h2>
+            <div id="usersList" class="users-list"></div>
         </section>
 
         <section class="card">

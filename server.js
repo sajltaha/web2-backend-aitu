@@ -4,6 +4,7 @@ import dotenv from "dotenv";
 import tasksRouter from "./routes/tasks.js";
 import commentsRouter from "./routes/comments.js";
 import authRouter from "./routes/auth.js";
+import usersRouter from "./routes/users.js";
 import { errorHandler } from "./middleware/errorHandler.js";
 
 dotenv.config();
@@ -30,6 +31,7 @@ app.use(express.json());
 app.use("/api/auth", authRouter);
 app.use("/api/tasks", tasksRouter);
 app.use("/api/comments", commentsRouter);
+app.use("/api/users", usersRouter);
 
 app.use(express.static("public"));
 

@@ -3,11 +3,29 @@ import Comment from "../models/Comment.js";
 import User from "../models/User.js";
 
 const populateTask = (query) =>
-    query.populate("creator", "email").populate("assignee", "email");
+    query
+        .populate("creator", "firstName lastName email")
+        .populate("assignee", "firstName lastName email")
+        .populate("updatedBy", "firstName lastName email");
 
 const escapeRegex = (value) => value.replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
+const ADMIN_ROLES = ["admin", "superadmin"];
+const isSuperAdmin = (user) => user && user.role === "superadmin";
+const canAccessAdminTask = (user, task) => {
+    if (!user || !task) return false;
+    if (isSuperAdmin(user)) return true;
+    const userId = user._id.toString();
+    const assigneeId = task.assignee?._id?.toString?.() || task.assignee?.toString?.();
+    const creatorId = task.creator?._id?.toString?.() || task.creator?.toString?.();
+    return assigneeId === userId || creatorId === userId;
+};
 
-const resolveAssignee = async ({ assigneeId, assigneeEmail }) => {
+const getAdminIds = async () => {
+    const admins = await User.find({ role: { $in: ADMIN_ROLES } }).select("_id");
+    return admins.map((admin) => admin._id.toString());
+};
+
+const resolveAssignee = async ({ assigneeId, assigneeEmail, requester }) => {
     if (assigneeId === "" || assigneeEmail === "") {
         return null;
     }
@@ -17,6 +35,11 @@ const resolveAssignee = async ({ assigneeId, assigneeEmail }) => {
         if (!user) {
             throw Object.assign(new Error("Assignee not found"), { status: 400 });
         }
+        if (requester?.role === "admin" && user.role === "superadmin") {
+            throw Object.assign(new Error("Cannot assign tasks to superadmin"), {
+                status: 403,
+            });
+        }
         return user._id;
     }
 
@@ -24,6 +47,11 @@ const resolveAssignee = async ({ assigneeId, assigneeEmail }) => {
         const user = await User.findOne({ email: assigneeEmail.toLowerCase() });
         if (!user) {
             throw Object.assign(new Error("Assignee not found"), { status: 400 });
+        }
+        if (requester?.role === "admin" && user.role === "superadmin") {
+            throw Object.assign(new Error("Cannot assign tasks to superadmin"), {
+                status: 403,
+            });
         }
         return user._id;
     }
@@ -40,6 +68,7 @@ export const createTask = async (req, res, next) => {
             status,
             priority,
             creator: req.user._id,
+            updatedBy: req.user._id,
         };
 
         if (typeof dueDate !== "undefined") {
@@ -54,14 +83,18 @@ export const createTask = async (req, res, next) => {
             }
         }
 
-        const assignee = await resolveAssignee({ assigneeId, assigneeEmail });
+        const assignee = await resolveAssignee({
+            assigneeId,
+            assigneeEmail,
+            requester: req.user,
+        });
         if (typeof assignee !== "undefined") {
             taskData.assignee = assignee;
         }
 
         const task = await Task.create(taskData);
-        await task.populate("creator", "email");
-        await task.populate("assignee", "email");
+        await task.populate("creator", "firstName lastName email");
+        await task.populate("assignee", "firstName lastName email");
         res.status(201).json(task);
     } catch (error) {
         next(error);
@@ -84,6 +117,20 @@ export const getAllTasks = async (req, res, next) => {
                 { title: { $regex: escaped, $options: "i" } },
                 { description: { $regex: escaped, $options: "i" } },
             ];
+        }
+        if (!isSuperAdmin(req.user)) {
+            const adminIds = await getAdminIds();
+            if (adminIds.length) {
+                if (req.user) {
+                    filter.$or = [
+                        { assignee: { $nin: adminIds } },
+                        { assignee: req.user._id },
+                        { creator: req.user._id },
+                    ];
+                } else {
+                    filter.assignee = { $nin: adminIds };
+                }
+            }
         }
 
         const [items, totalItems] = await Promise.all([
@@ -146,6 +193,14 @@ export const getTaskById = async (req, res, next) => {
         if (!task) {
             return res.status(404).json({ message: "Task not found" });
         }
+        if (!isSuperAdmin(req.user) && task.assignee) {
+            const adminIds = await getAdminIds();
+            if (adminIds.includes(task.assignee._id.toString())) {
+                if (!req.user || !canAccessAdminTask(req.user, task)) {
+                    return res.status(403).json({ message: "Access denied" });
+                }
+            }
+        }
         res.json(task);
     } catch (error) {
         next(error);
@@ -156,7 +211,13 @@ export const updateTask = async (req, res, next) => {
     try {
         const { title, description, status, priority, assigneeId, assigneeEmail, dueDate } = req.body;
 
-        const updates = { title, description, status, priority };
+        const updates = {
+            title,
+            description,
+            status,
+            priority,
+            updatedBy: req.user._id,
+        };
 
         if (typeof dueDate !== "undefined") {
             if (dueDate === "" || dueDate === null) {
@@ -170,7 +231,11 @@ export const updateTask = async (req, res, next) => {
             }
         }
 
-        const assignee = await resolveAssignee({ assigneeId, assigneeEmail });
+        const assignee = await resolveAssignee({
+            assigneeId,
+            assigneeEmail,
+            requester: req.user,
+        });
         if (typeof assignee !== "undefined") {
             updates.assignee = assignee;
         }
@@ -199,6 +264,7 @@ export const updateTaskStatus = async (req, res, next) => {
         }
         if (
             req.user.role !== "admin" &&
+            req.user.role !== "superadmin" &&
             (!task.assignee || task.assignee.toString() !== req.user._id.toString())
         ) {
             return res.status(403).json({
@@ -207,9 +273,11 @@ export const updateTaskStatus = async (req, res, next) => {
         }
 
         task.status = status;
+        task.updatedBy = req.user._id;
         await task.save();
-        await task.populate("creator", "email");
-        await task.populate("assignee", "email");
+        await task.populate("creator", "firstName lastName email");
+        await task.populate("assignee", "firstName lastName email");
+        await task.populate("updatedBy", "firstName lastName email");
         res.json(task);
     } catch (error) {
         next(error);

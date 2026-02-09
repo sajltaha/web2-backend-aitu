@@ -10,11 +10,11 @@ const generateToken = (userId) => {
 
 export const register = async (req, res, next) => {
     try {
-        const { email, password, role } = req.body;
+        const { firstName, lastName, email, password } = req.body;
 
-        if (!email || !password) {
+        if (!firstName || !lastName || !email || !password) {
             return res.status(400).json({ 
-                message: "Email and password are required" 
+                message: "First name, last name, email and password are required" 
             });
         }
 
@@ -29,10 +29,15 @@ export const register = async (req, res, next) => {
             return res.status(400).json({ message: "Email already registered" });
         }
 
+        const hasUsers = await User.exists({});
+        const role = hasUsers ? "user" : "superadmin";
+
         const user = await User.create({
+            firstName,
+            lastName,
             email,
             password,
-            role: role || "user",
+            role,
         });
 
         const token = generateToken(user._id);
@@ -42,6 +47,8 @@ export const register = async (req, res, next) => {
             token,
             user: {
                 id: user._id,
+                firstName: user.firstName,
+                lastName: user.lastName,
                 email: user.email,
                 role: user.role,
             },
@@ -78,6 +85,8 @@ export const login = async (req, res, next) => {
             token,
             user: {
                 id: user._id,
+                firstName: user.firstName,
+                lastName: user.lastName,
                 email: user.email,
                 role: user.role,
             },
@@ -92,6 +101,8 @@ export const getProfile = async (req, res, next) => {
         res.json({
             user: {
                 id: req.user._id,
+                firstName: req.user.firstName,
+                lastName: req.user.lastName,
                 email: req.user.email,
                 role: req.user.role,
             },

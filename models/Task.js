@@ -30,6 +30,11 @@ const taskSchema = new mongoose.Schema(
             type: Date,
             default: null,
         },
+        updatedBy: {
+            type: mongoose.Schema.Types.ObjectId,
+            ref: "User",
+            default: null,
+        },
     },
     { timestamps: true }
 );

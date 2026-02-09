@@ -10,16 +10,16 @@ import {
 } from "../controllers/taskController.js";
 import { validateTask } from "../middleware/validateTask.js";
 import { validateTaskStatus } from "../middleware/validateTask.js";
-import { authenticate } from "../middleware/auth.js";
+import { authenticate, optionalAuth } from "../middleware/auth.js";
 import { requireAdmin } from "../middleware/auth.js";
 
 const router = express.Router();
 
-router.get("/", getAllTasks);
+router.get("/", optionalAuth, getAllTasks);
 
 router.get("/mine", authenticate, getMyTasks);
 
-router.get("/:id", getTaskById);
+router.get("/:id", optionalAuth, getTaskById);
 
 router.post("/", authenticate, requireAdmin, validateTask, createTask);
 router.put("/:id", authenticate, requireAdmin, validateTask, updateTask);

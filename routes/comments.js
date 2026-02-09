@@ -7,13 +7,13 @@ import {
     updateComment,
     deleteComment,
 } from "../controllers/commentController.js";
-import { authenticate } from "../middleware/auth.js";
+import { authenticate, optionalAuth } from "../middleware/auth.js";
 
 const router = express.Router();
 
-router.get("/", getAllComments);
-router.get("/task/:taskId", getCommentsByTask);
-router.get("/:id", getCommentById);
+router.get("/", optionalAuth, getAllComments);
+router.get("/task/:taskId", optionalAuth, getCommentsByTask);
+router.get("/:id", optionalAuth, getCommentById);
 
 router.post("/", authenticate, createComment);
 router.put("/:id", authenticate, updateComment);

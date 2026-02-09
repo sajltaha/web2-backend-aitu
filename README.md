@@ -154,6 +154,14 @@ Responses are paginated and returned in the following format:
 | PUT | `/api/comments/:id` | Authenticated | Update own comment (or admin) |
 | DELETE | `/api/comments/:id` | Authenticated | Delete own comment (or admin) |
 
+### User Management Endpoints
+
+| Method | Endpoint | Access | Description |
+|--------|----------|--------|-------------|
+| GET | `/api/users` | Admin | List users |
+| PUT | `/api/users/:id/role` | Super Admin | Assign admin role |
+| DELETE | `/api/users/:id` | Super Admin | Delete user or admin |
+
 ## Frontend
 
 The frontend is served from the `public/` folder by Express. It includes:
@@ -186,14 +194,15 @@ Postman collection is available at `postman/TaskManager.postman_collection.json`
 
 ### User Registration
 
-When registering, users can optionally specify a role. If not specified, the default role is `"user"`.
+When registering, users provide their names. The first registered user becomes `superadmin` automatically. All others are created as `user`.
 
 **Request Body:**
 ```json
 {
+  "firstName": "John",
+  "lastName": "Doe",
   "email": "user@example.com",
-  "password": "password123",
-  "role": "user"
+  "password": "password123"
 }
 ```
 
@@ -246,6 +255,9 @@ Authorization: Bearer <your-jwt-token>
 - **PUT** `/api/tasks/:id` - Update tasks
 - **DELETE** `/api/tasks/:id` - Delete tasks
 
+#### Super Admin Access (Super Admin Role Required)
+- **PUT** `/api/users/:id/role` - Promote users to admin
+
 ### Creating Admin Users
 
 To create an admin user, register with `role: "admin"`:
@@ -253,9 +265,10 @@ To create an admin user, register with `role: "admin"`:
 ```json
 POST /api/auth/register
 {
+  "firstName": "Super",
+  "lastName": "Admin",
   "email": "admin@example.com",
-  "password": "admin123",
-  "role": "admin"
+  "password": "admin123"
 }
 ```
 

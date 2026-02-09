@@ -1,5 +1,22 @@
 import Comment from "../models/Comment.js";
 import Task from "../models/Task.js";
+import User from "../models/User.js";
+
+const ADMIN_ROLES = ["admin", "superadmin"];
+const isSuperAdmin = (user) => user && user.role === "superadmin";
+const canAccessAdminTask = (user, task) => {
+    if (!user || !task) return false;
+    if (isSuperAdmin(user)) return true;
+    const userId = user._id.toString();
+    const assigneeId = task.assignee?._id?.toString?.() || task.assignee?.toString?.();
+    const creatorId = task.creator?._id?.toString?.() || task.creator?.toString?.();
+    return assigneeId === userId || creatorId === userId;
+};
+
+const getAdminIds = async () => {
+    const admins = await User.find({ role: { $in: ADMIN_ROLES } }).select("_id");
+    return admins.map((admin) => admin._id.toString());
+};
 
 export const createComment = async (req, res, next) => {
     try {
@@ -33,8 +50,20 @@ export const createComment = async (req, res, next) => {
 export const getCommentsByTask = async (req, res, next) => {
     try {
         const { taskId } = req.params;
+        const task = await Task.findById(taskId);
+        if (!task) {
+            return res.status(404).json({ message: "Task not found" });
+        }
+        if (!isSuperAdmin(req.user) && task.assignee) {
+            const adminIds = await getAdminIds();
+            if (adminIds.includes(task.assignee.toString())) {
+                if (!req.user || !canAccessAdminTask(req.user, task)) {
+                    return res.status(403).json({ message: "Access denied" });
+                }
+            }
+        }
         const comments = await Comment.find({ task: taskId })
-            .populate("author", "email")
+            .populate("author", "firstName lastName email role")
             .sort({ createdAt: -1 });
         res.json(comments);
     } catch (error) {
@@ -44,8 +73,27 @@ export const getCommentsByTask = async (req, res, next) => {
 
 export const getAllComments = async (req, res, next) => {
     try {
-        const comments = await Comment.find()
-            .populate("author", "email")
+        const filter = {};
+        if (!isSuperAdmin(req.user)) {
+            const adminIds = await getAdminIds();
+            if (adminIds.length) {
+                const taskFilter = req.user
+                    ? {
+                          $or: [
+                              { assignee: { $nin: adminIds } },
+                              { assignee: req.user._id },
+                              { creator: req.user._id },
+                          ],
+                      }
+                    : { assignee: { $nin: adminIds } };
+
+                const allowedTasks = await Task.find(taskFilter).select("_id");
+                filter.task = { $in: allowedTasks.map((task) => task._id) };
+            }
+        }
+
+        const comments = await Comment.find(filter)
+            .populate("author", "firstName lastName email role")
             .populate("task", "title")
             .sort({ createdAt: -1 });
         res.json(comments);
@@ -57,10 +105,18 @@ export const getAllComments = async (req, res, next) => {
 export const getCommentById = async (req, res, next) => {
     try {
         const comment = await Comment.findById(req.params.id)
-            .populate("author", "email")
-            .populate("task", "title");
+            .populate("author", "firstName lastName email role")
+            .populate("task", "title assignee creator");
         if (!comment) {
             return res.status(404).json({ message: "Comment not found" });
+        }
+        if (!isSuperAdmin(req.user) && comment.task?.assignee) {
+            const adminIds = await getAdminIds();
+            if (adminIds.includes(comment.task.assignee.toString())) {
+                if (!req.user || !canAccessAdminTask(req.user, comment.task)) {
+                    return res.status(403).json({ message: "Access denied" });
+                }
+            }
         }
         res.json(comment);
     } catch (error) {
@@ -81,7 +137,11 @@ export const updateComment = async (req, res, next) => {
             return res.status(404).json({ message: "Comment not found" });
         }
 
-        if (comment.author.toString() !== req.user._id.toString() && req.user.role !== "admin") {
+        if (
+            comment.author.toString() !== req.user._id.toString() &&
+            req.user.role !== "admin" &&
+            req.user.role !== "superadmin"
+        ) {
             return res.status(403).json({ 
                 message: "You can only update your own comments" 
             });
@@ -90,7 +150,7 @@ export const updateComment = async (req, res, next) => {
         comment.content = content;
         await comment.save();
 
-        await comment.populate("author", "email");
+        await comment.populate("author", "firstName lastName email role");
         res.json(comment);
     } catch (error) {
         next(error);
@@ -104,7 +164,11 @@ export const deleteComment = async (req, res, next) => {
             return res.status(404).json({ message: "Comment not found" });
         }
 
-        if (comment.author.toString() !== req.user._id.toString() && req.user.role !== "admin") {
+        if (
+            comment.author.toString() !== req.user._id.toString() &&
+            req.user.role !== "admin" &&
+            req.user.role !== "superadmin"
+        ) {
             return res.status(403).json({ 
                 message: "You can only delete your own comments" 
             });
