@@ -51,7 +51,7 @@ asiks/
 ### Two Related Objects
 
 1. **Task** (Primary Object)
-   - Fields: `title`, `description`, `status`, `priority`
+   - Fields: `title`, `description`, `status`, `priority`, `creator`, `assignee`, `dueDate`
    - Status: `todo`, `in_progress`, `done`
    - Priority: `low`, `medium`, `high`
 
@@ -65,7 +65,7 @@ asiks/
 - **Password Hashing**: Uses bcrypt with salt rounds of 10
 - **JWT Authentication**: Token-based authentication with 7-day expiration
 - **Role-Based Access Control**: Two roles - `user` and `admin`
-- **Protected Routes**: Admin-only access for POST, PUT, DELETE operations
+- **Protected Routes**: Admin-only access for task create/update/delete
 
 ## Setup Instructions
 
@@ -96,12 +96,7 @@ asiks/
    JWT_SECRET=your-super-secret-jwt-key-change-this-in-production
    ```
 
-4. **Install dependencies**
-   ```bash
-   npm install
-   ```
-
-5. **Start the server**
+4. **Start the server**
    ```bash
    npm run dev
    ```
@@ -123,10 +118,30 @@ asiks/
 | Method | Endpoint | Access | Description |
 |--------|----------|--------|-------------|
 | GET | `/api/tasks` | Public | Get all tasks |
+| GET | `/api/tasks/mine` | Authenticated | Get tasks assigned to current user |
 | GET | `/api/tasks/:id` | Public | Get a single task |
 | POST | `/api/tasks` | **Admin Only** | Create a new task |
 | PUT | `/api/tasks/:id` | **Admin Only** | Update a task |
+| PATCH | `/api/tasks/:id/status` | Authenticated | Update task status |
 | DELETE | `/api/tasks/:id` | **Admin Only** | Delete a task |
+
+**Query Filters (GET /api/tasks and /api/tasks/mine)**
+
+- `status`: `todo` | `in_progress` | `done`
+- `priority`: `low` | `medium` | `high`
+- `search`: text search in title/description
+- `page` / `limit`: pagination
+
+Responses are paginated and returned in the following format:
+
+```json
+{
+  "items": [],
+  "page": 1,
+  "totalPages": 1,
+  "totalItems": 0
+}
+```
 
 ### Comment Endpoints
 
@@ -135,9 +150,37 @@ asiks/
 | GET | `/api/comments` | Public | Get all comments |
 | GET | `/api/comments/task/:taskId` | Public | Get comments for a task |
 | GET | `/api/comments/:id` | Public | Get a single comment |
-| POST | `/api/comments` | **Admin Only** | Create a new comment |
+| POST | `/api/comments` | Authenticated | Create a new comment |
 | PUT | `/api/comments/:id` | Authenticated | Update own comment (or admin) |
-| DELETE | `/api/comments/:id` | **Admin Only** | Delete a comment |
+| DELETE | `/api/comments/:id` | Authenticated | Delete own comment (or admin) |
+
+## Frontend
+
+The frontend is served from the `public/` folder by Express. It includes:
+
+- Registration and login with JWT stored in `localStorage`
+- Task list with status updates
+- Comment creation and display
+
+Start the backend and open `http://localhost:3000` to use the UI.
+
+## Deployment
+
+### Render (Backend + Frontend)
+
+1. Create a new Web Service from this repository.
+2. Set the build command: `npm install`
+3. Set the start command: `node server.js`
+4. Add environment variables:
+   - `MONGO_URI`
+   - `JWT_SECRET`
+   - `PORT` (optional)
+
+The static frontend will be served automatically by the same service.
+
+## Postman Collection
+
+Postman collection is available at `postman/TaskManager.postman_collection.json`.
 
 ## Authentication & RBAC
 
@@ -192,14 +235,16 @@ Authorization: Bearer <your-jwt-token>
 
 #### Authenticated Access (Login Required)
 - **GET** `/api/auth/profile` - View own profile
+- **GET** `/api/tasks/mine` - View tasks assigned to you
+- **PATCH** `/api/tasks/:id/status` - Update status (assignee or admin)
+- **POST** `/api/comments` - Create comments
 - **PUT** `/api/comments/:id` - Update own comments (or admin can update any)
+- **DELETE** `/api/comments/:id` - Delete own comments (or admin can delete any)
 
 #### Admin-Only Access (Admin Role Required)
 - **POST** `/api/tasks` - Create tasks
 - **PUT** `/api/tasks/:id` - Update tasks
 - **DELETE** `/api/tasks/:id` - Delete tasks
-- **POST** `/api/comments` - Create comments
-- **DELETE** `/api/comments/:id` - Delete comments
 
 ### Creating Admin Users
 
@@ -211,6 +256,22 @@ POST /api/auth/register
   "email": "admin@example.com",
   "password": "admin123",
   "role": "admin"
+}
+```
+
+### Task Assignment
+
+Admins can assign tasks to users by email or by user ID:
+
+```json
+POST /api/tasks
+{
+  "title": "Release notes",
+  "description": "Prepare release notes for sprint 3",
+  "status": "todo",
+  "priority": "high",
+  "assigneeEmail": "user@example.com",
+  "dueDate": "2026-02-20"
 }
 ```
 

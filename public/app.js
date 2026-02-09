@@ -28,6 +28,8 @@ const titleInput = document.getElementById('titleInput');
 const descriptionInput = document.getElementById('descriptionInput');
 const statusSelect = document.getElementById('statusSelect');
 const prioritySelect = document.getElementById('prioritySelect');
+const assigneeInput = document.getElementById('assigneeInput');
+const dueDateInput = document.getElementById('dueDateInput');
 const submitBtn = document.getElementById('submitBtn');
 const cancelBtn = document.getElementById('cancelBtn');
 const formTitle = document.getElementById('formTitle');
@@ -36,6 +38,19 @@ const loadingMessage = document.getElementById('loadingMessage');
 const emptyMessage = document.getElementById('emptyMessage');
 const adminHint = document.getElementById('adminHint');
 const notification = document.getElementById('notification');
+const filtersForm = document.getElementById('filtersForm');
+const searchInput = document.getElementById('searchInput');
+const filterStatus = document.getElementById('filterStatus');
+const filterPriority = document.getElementById('filterPriority');
+const myTasksOnly = document.getElementById('myTasksOnly');
+const resetFilters = document.getElementById('resetFilters');
+
+const filters = {
+    search: '',
+    status: '',
+    priority: '',
+    mine: false
+};
 
 function getToken() {
     return localStorage.getItem('token');
@@ -117,6 +132,16 @@ function escapeHtml(str) {
         .replace(/'/g, '&#039;');
 }
 
+function buildTasksUrl() {
+    const params = new URLSearchParams();
+    if (filters.search) params.set('search', filters.search);
+    if (filters.status) params.set('status', filters.status);
+    if (filters.priority) params.set('priority', filters.priority);
+    const base = filters.mine ? '/tasks/mine' : '/tasks';
+    const query = params.toString();
+    return query ? `${base}?${query}` : base;
+}
+
 function updateUI() {
     currentUser = getUser();
     
@@ -140,6 +165,8 @@ function updateUI() {
         authButtons.style.display = 'flex';
         taskFormSection.style.display = 'none';
         adminHint.style.display = 'inline';
+        myTasksOnly.checked = false;
+        filters.mine = false;
     }
     
     loadTasks();
@@ -232,7 +259,8 @@ async function loadTasks() {
         emptyMessage.style.display = 'none';
         tasksList.innerHTML = '';
 
-        tasks = await apiRequest('/tasks');
+        const data = await apiRequest(buildTasksUrl());
+        tasks = Array.isArray(data) ? data : (data.items || []);
         
         loadingMessage.style.display = 'none';
         
@@ -274,8 +302,10 @@ function createTaskElement(task) {
     };
 
     const isAdmin = currentUser && currentUser.role === 'admin';
-    const isUser = currentUser && currentUser.role === 'user';
     const isAuthenticated = !!currentUser;
+    const assigneeLabel = task.assignee?.email ? escapeHtml(task.assignee.email) : 'Unassigned';
+    const creatorLabel = task.creator?.email ? escapeHtml(task.creator.email) : 'Unknown';
+    const dueDateLabel = task.dueDate ? new Date(task.dueDate).toLocaleDateString('ru-RU') : 'No due date';
     
     const adminActions = isAdmin ? `
         <div class="task-actions">
@@ -284,7 +314,7 @@ function createTaskElement(task) {
         </div>
     ` : '';
     
-    const statusActions = isUser ? `
+    const statusActions = isAuthenticated ? `
         <div class="status-actions">
             <label>Change status:</label>
             <select class="status-select" onchange="changeTaskStatus('${task._id}', this.value)" data-task-id="${task._id}">
@@ -305,6 +335,8 @@ function createTaskElement(task) {
         <div class="task-meta">
             <span class="meta-badge status-${task.status}">${statusLabels[task.status]}</span>
             <span class="meta-badge priority-${task.priority}">${priorityLabels[task.priority]}</span>
+            <span class="meta-badge">Assignee: ${assigneeLabel}</span>
+            <span class="meta-badge">Due: ${dueDateLabel}</span>
         </div>
         ${adminActions}
         ${statusActions}
@@ -325,7 +357,7 @@ function createTaskElement(task) {
             ` : ''}
         </div>
         <div class="task-footer">
-            Created: ${new Date(task.createdAt).toLocaleString('ru-RU')}
+            Created: ${new Date(task.createdAt).toLocaleString('ru-RU')} · By: ${creatorLabel}
         </div>
     `;
 
@@ -413,19 +445,10 @@ window.changeTaskStatus = async function(taskId, newStatus) {
     }
 
     try {
-        const task = tasks.find(t => t._id === taskId);
-        if (!task) {
-            showNotification('Task not found', 'error');
-            return;
-        }
-
-        await apiRequest(`/tasks/${taskId}`, {
-            method: 'PUT',
+        await apiRequest(`/tasks/${taskId}/status`, {
+            method: 'PATCH',
             body: JSON.stringify({
-                title: task.title,
-                description: task.description,
-                status: newStatus,
-                priority: task.priority
+                status: newStatus
             })
         });
 
@@ -442,6 +465,8 @@ function clearTaskForm() {
     taskForm.reset();
     statusSelect.value = 'todo';
     prioritySelect.value = 'medium';
+    assigneeInput.value = '';
+    dueDateInput.value = '';
     submitBtn.textContent = 'Create';
     formTitle.textContent = 'Create task';
     cancelBtn.style.display = 'none';
@@ -468,6 +493,8 @@ window.editTask = function(taskId) {
     descriptionInput.value = task.description;
     statusSelect.value = task.status;
     prioritySelect.value = task.priority;
+    assigneeInput.value = task.assignee?.email || '';
+    dueDateInput.value = task.dueDate ? new Date(task.dueDate).toISOString().slice(0, 10) : '';
     
     submitBtn.textContent = 'Save changes';
     formTitle.textContent = 'Edit task';
@@ -528,6 +555,20 @@ async function handleTaskSubmit(event) {
         priority: prioritySelect.value
     };
 
+    const assigneeEmail = assigneeInput.value.trim();
+    if (assigneeEmail) {
+        taskData.assigneeEmail = assigneeEmail;
+    } else if (editingId.value) {
+        taskData.assigneeEmail = '';
+    }
+
+    const dueDateValue = dueDateInput.value;
+    if (dueDateValue) {
+        taskData.dueDate = dueDateValue;
+    } else if (editingId.value) {
+        taskData.dueDate = '';
+    }
+
     if (!taskData.title || !taskData.description) {
         showNotification('Fill in all fields', 'error');
         return;
@@ -559,6 +600,33 @@ async function handleTaskSubmit(event) {
     }
 }
 
+function applyFilters() {
+    filters.search = searchInput.value.trim();
+    filters.status = filterStatus.value;
+    filters.priority = filterPriority.value;
+    filters.mine = myTasksOnly.checked;
+
+    if (filters.mine && !currentUser) {
+        showNotification('Login to view assigned tasks', 'error');
+        myTasksOnly.checked = false;
+        filters.mine = false;
+    }
+
+    loadTasks();
+}
+
+function resetFiltersForm() {
+    searchInput.value = '';
+    filterStatus.value = '';
+    filterPriority.value = '';
+    myTasksOnly.checked = false;
+    filters.search = '';
+    filters.status = '';
+    filters.priority = '';
+    filters.mine = false;
+    loadTasks();
+}
+
 loginBtn.addEventListener('click', () => openAuthModal(false));
 registerBtn.addEventListener('click', () => openAuthModal(true));
 logoutBtn.addEventListener('click', logout);
@@ -572,6 +640,11 @@ authForm.addEventListener('submit', (e) => {
 
 taskForm.addEventListener('submit', handleTaskSubmit);
 cancelBtn.addEventListener('click', clearTaskForm);
+filtersForm.addEventListener('submit', (e) => {
+    e.preventDefault();
+    applyFilters();
+});
+resetFilters.addEventListener('click', resetFiltersForm);
 
 authModal.addEventListener('click', (e) => {
     if (e.target === authModal) {

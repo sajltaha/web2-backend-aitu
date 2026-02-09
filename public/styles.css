@@ -196,6 +196,26 @@ textarea {
     gap: 1rem;
 }
 
+.filters {
+    display: grid;
+    grid-template-columns: 1.5fr 1fr 1fr auto;
+    gap: 0.75rem;
+    align-items: center;
+    margin-bottom: 1rem;
+}
+
+.filters .checkbox {
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
+    font-weight: 500;
+}
+
+.filter-actions {
+    display: flex;
+    gap: 0.5rem;
+}
+
 .task-item {
     background: var(--card-bg);
     border: 1px solid var(--border-color);
@@ -501,6 +521,18 @@ textarea {
     }
 
     .task-actions button {
+        flex: 1;
+    }
+
+    .filters {
+        grid-template-columns: 1fr;
+    }
+
+    .filter-actions {
+        width: 100%;
+    }
+
+    .filter-actions button {
         flex: 1;
     }
 }

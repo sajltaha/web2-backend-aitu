@@ -90,6 +90,18 @@
                         </select>
                     </label>
                 </div>
+
+                <div class="row">
+                    <label>
+                        Assignee (email):
+                        <input type="email" id="assigneeInput" placeholder="user@example.com">
+                    </label>
+
+                    <label>
+                        Due date:
+                        <input type="date" id="dueDateInput">
+                    </label>
+                </div>
                 
                 <div class="form-actions">
                     <button type="submit" class="btn-primary" id="submitBtn">Create</button>
@@ -100,6 +112,29 @@
 
         <section class="card">
             <h2>Tasks</h2>
+            <form id="filtersForm" class="filters">
+                <input type="text" id="searchInput" placeholder="Search by title or description">
+                <select id="filterStatus">
+                    <option value="">All statuses</option>
+                    <option value="todo">To do</option>
+                    <option value="in_progress">In progress</option>
+                    <option value="done">Done</option>
+                </select>
+                <select id="filterPriority">
+                    <option value="">All priorities</option>
+                    <option value="low">Low</option>
+                    <option value="medium">Medium</option>
+                    <option value="high">High</option>
+                </select>
+                <label class="checkbox">
+                    <input type="checkbox" id="myTasksOnly">
+                    Assigned to me
+                </label>
+                <div class="filter-actions">
+                    <button type="submit" class="btn-primary">Apply</button>
+                    <button type="button" class="btn-secondary" id="resetFilters">Reset</button>
+                </div>
+            </form>
             <div id="tasksList" class="tasks-list"></div>
             <div id="loadingMessage" class="loading">Loading...</div>
             <div id="emptyMessage" class="empty-message" style="display: none;">

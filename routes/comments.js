@@ -8,7 +8,6 @@ import {
     deleteComment,
 } from "../controllers/commentController.js";
 import { authenticate } from "../middleware/auth.js";
-import { requireAdmin } from "../middleware/auth.js";
 
 const router = express.Router();
 
@@ -18,7 +17,7 @@ router.get("/:id", getCommentById);
 
 router.post("/", authenticate, createComment);
 router.put("/:id", authenticate, updateComment);
-router.delete("/:id", authenticate, requireAdmin, deleteComment);
+router.delete("/:id", authenticate, deleteComment);
 
 export default router;
 

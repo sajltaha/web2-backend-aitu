@@ -1,0 +1,190 @@
+{
+  "info": {
+    "name": "Task Management API",
+    "schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json"
+  },
+  "variable": [
+    {
+      "key": "baseUrl",
+      "value": "http://localhost:3000/api"
+    },
+    {
+      "key": "token",
+      "value": ""
+    },
+    {
+      "key": "taskId",
+      "value": ""
+    },
+    {
+      "key": "commentId",
+      "value": ""
+    }
+  ],
+  "item": [
+    {
+      "name": "Auth - Register",
+      "request": {
+        "method": "POST",
+        "header": [
+          { "key": "Content-Type", "value": "application/json" }
+        ],
+        "url": { "raw": "{{baseUrl}}/auth/register", "host": ["{{baseUrl}}"], "path": ["auth", "register"] },
+        "body": {
+          "mode": "raw",
+          "raw": "{\n  \"email\": \"user@example.com\",\n  \"password\": \"password123\",\n  \"role\": \"user\"\n}"
+        }
+      }
+    },
+    {
+      "name": "Auth - Login",
+      "request": {
+        "method": "POST",
+        "header": [
+          { "key": "Content-Type", "value": "application/json" }
+        ],
+        "url": { "raw": "{{baseUrl}}/auth/login", "host": ["{{baseUrl}}"], "path": ["auth", "login"] },
+        "body": {
+          "mode": "raw",
+          "raw": "{\n  \"email\": \"user@example.com\",\n  \"password\": \"password123\"\n}"
+        }
+      }
+    },
+    {
+      "name": "Auth - Profile",
+      "request": {
+        "method": "GET",
+        "header": [
+          { "key": "Authorization", "value": "Bearer {{token}}" }
+        ],
+        "url": { "raw": "{{baseUrl}}/auth/profile", "host": ["{{baseUrl}}"], "path": ["auth", "profile"] }
+      }
+    },
+    {
+      "name": "Tasks - Get All",
+      "request": {
+        "method": "GET",
+        "url": { "raw": "{{baseUrl}}/tasks", "host": ["{{baseUrl}}"], "path": ["tasks"] }
+      }
+    },
+    {
+      "name": "Tasks - Get Mine",
+      "request": {
+        "method": "GET",
+        "header": [
+          { "key": "Authorization", "value": "Bearer {{token}}" }
+        ],
+        "url": { "raw": "{{baseUrl}}/tasks/mine", "host": ["{{baseUrl}}"], "path": ["tasks", "mine"] }
+      }
+    },
+    {
+      "name": "Tasks - Create (Admin)",
+      "request": {
+        "method": "POST",
+        "header": [
+          { "key": "Content-Type", "value": "application/json" },
+          { "key": "Authorization", "value": "Bearer {{token}}" }
+        ],
+        "url": { "raw": "{{baseUrl}}/tasks", "host": ["{{baseUrl}}"], "path": ["tasks"] },
+        "body": {
+          "mode": "raw",
+          "raw": "{\n  \"title\": \"Demo task\",\n  \"description\": \"Demo description\",\n  \"status\": \"todo\",\n  \"priority\": \"medium\",\n  \"assigneeEmail\": \"user@example.com\",\n  \"dueDate\": \"2026-02-20\"\n}"
+        }
+      }
+    },
+    {
+      "name": "Tasks - Update (Admin)",
+      "request": {
+        "method": "PUT",
+        "header": [
+          { "key": "Content-Type", "value": "application/json" },
+          { "key": "Authorization", "value": "Bearer {{token}}" }
+        ],
+        "url": { "raw": "{{baseUrl}}/tasks/{{taskId}}", "host": ["{{baseUrl}}"], "path": ["tasks", "{{taskId}}"] },
+        "body": {
+          "mode": "raw",
+          "raw": "{\n  \"title\": \"Updated task\",\n  \"description\": \"Updated description\",\n  \"status\": \"in_progress\",\n  \"priority\": \"high\",\n  \"assigneeEmail\": \"user@example.com\",\n  \"dueDate\": \"2026-02-22\"\n}"
+        }
+      }
+    },
+    {
+      "name": "Tasks - Update Status",
+      "request": {
+        "method": "PATCH",
+        "header": [
+          { "key": "Content-Type", "value": "application/json" },
+          { "key": "Authorization", "value": "Bearer {{token}}" }
+        ],
+        "url": { "raw": "{{baseUrl}}/tasks/{{taskId}}/status", "host": ["{{baseUrl}}"], "path": ["tasks", "{{taskId}}", "status"] },
+        "body": {
+          "mode": "raw",
+          "raw": "{\n  \"status\": \"done\"\n}"
+        }
+      }
+    },
+    {
+      "name": "Tasks - Delete (Admin)",
+      "request": {
+        "method": "DELETE",
+        "header": [
+          { "key": "Authorization", "value": "Bearer {{token}}" }
+        ],
+        "url": { "raw": "{{baseUrl}}/tasks/{{taskId}}", "host": ["{{baseUrl}}"], "path": ["tasks", "{{taskId}}"] }
+      }
+    },
+    {
+      "name": "Comments - Get All",
+      "request": {
+        "method": "GET",
+        "url": { "raw": "{{baseUrl}}/comments", "host": ["{{baseUrl}}"], "path": ["comments"] }
+      }
+    },
+    {
+      "name": "Comments - Get By Task",
+      "request": {
+        "method": "GET",
+        "url": { "raw": "{{baseUrl}}/comments/task/{{taskId}}", "host": ["{{baseUrl}}"], "path": ["comments", "task", "{{taskId}}"] }
+      }
+    },
+    {
+      "name": "Comments - Create",
+      "request": {
+        "method": "POST",
+        "header": [
+          { "key": "Content-Type", "value": "application/json" },
+          { "key": "Authorization", "value": "Bearer {{token}}" }
+        ],
+        "url": { "raw": "{{baseUrl}}/comments", "host": ["{{baseUrl}}"], "path": ["comments"] },
+        "body": {
+          "mode": "raw",
+          "raw": "{\n  \"content\": \"Nice task!\",\n  \"taskId\": \"{{taskId}}\"\n}"
+        }
+      }
+    },
+    {
+      "name": "Comments - Update",
+      "request": {
+        "method": "PUT",
+        "header": [
+          { "key": "Content-Type", "value": "application/json" },
+          { "key": "Authorization", "value": "Bearer {{token}}" }
+        ],
+        "url": { "raw": "{{baseUrl}}/comments/{{commentId}}", "host": ["{{baseUrl}}"], "path": ["comments", "{{commentId}}"] },
+        "body": {
+          "mode": "raw",
+          "raw": "{\n  \"content\": \"Updated comment\"\n}"
+        }
+      }
+    },
+    {
+      "name": "Comments - Delete",
+      "request": {
+        "method": "DELETE",
+        "header": [
+          { "key": "Authorization", "value": "Bearer {{token}}" }
+        ],
+        "url": { "raw": "{{baseUrl}}/comments/{{commentId}}", "host": ["{{baseUrl}}"], "path": ["comments", "{{commentId}}"] }
+      }
+    }
+  ]
+}
